@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>University Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #f4f4f5; color: #111; }
+
+    nav {
+      background: #fff; padding: 16px 32px;
+      display: flex; gap: 24px; align-items: center;
+      border-bottom: 1px solid #e5e7eb; font-weight: 600;
+    }
+    nav a { text-decoration: none; color: #555; font-size: 0.9rem; }
+    nav a:hover, nav a.active { color: #2563eb; }
+
+    .hero {
+      background: #fff;
+      padding: 60px 40px 40px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 3rem; max-width: 560px; line-height: 1.15;
+    }
+    .hero p { color: #666; margin-top: 12px; max-width: 480px; line-height: 1.6; }
+
+    .search-bar { display: flex; gap: 12px; margin-top: 32px; max-width: 640px; }
+    .search-bar input {
+      flex: 1; padding: 12px 16px;
+      border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;
+      font-family: 'DM Sans', sans-serif; outline: none;
+    }
+    .search-bar input:focus { border-color: #2563eb; }
+    .search-bar button {
+      padding: 12px 24px; background: #2563eb; color: #fff;
+      border: none; border-radius: 8px; font-size: 1rem;
+      font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 600;
+    }
+    .search-bar button:hover { background: #1d4ed8; }
+
+    .main {
+      display: grid; grid-template-columns: 1fr 280px;
+      gap: 24px; max-width: 1100px; margin: 32px auto; padding: 0 24px;
+    }
+
+    .results-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 16px;
+    }
+    .results-header span { font-weight: 600; }
+
+    /* Course card — now clickable */
+    .card {
+      background: #fff; border-radius: 12px; padding: 0;
+      margin-bottom: 12px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      cursor: pointer; transition: box-shadow 0.2s, transform 0.2s;
+      display: flex;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-1px); }
+
+    .card-img {
+      width: 100px; height: 80px; object-fit: cover; flex-shrink: 0;
+    }
+    .card-no-img {
+      width: 100px; height: 80px; background: #e5e7eb; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+    }
+    .card-body { padding: 16px; flex: 1; }
+    .card-body h3 { font-size: 0.95rem; font-weight: 700; }
+    .card-meta { font-size: 0.8rem; color: #6b7280; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      display: inline-block; background: #eff6ff; color: #2563eb;
+      font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; font-weight: 600;
+    }
+    .badge.green { background: #d1fae5; color: #065f46; }
+
+    /* Sidebar */
+    .sidebar-box {
+      background: #fff; border-radius: 12px; padding: 20px;
+      margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      font-size: 0.9rem;
+    }
+    .sidebar-box h4 { font-weight: 700; margin-bottom: 12px; }
+    .sidebar-box input {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+      border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .sidebar-box button {
+      width: 100%; padding: 10px; background: #2563eb; color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-weight: 600;
+    }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .tag {
+      background: #f3f4f6; border: 1px solid #e5e7eb;
+      border-radius: 999px; padding: 4px 12px;
+      cursor: pointer; font-size: 0.8rem; transition: background 0.15s;
+    }
+    .tag:hover { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+
+    /* ── COURSE DETAIL MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
+      justify-content: center; align-items: center; z-index: 200;
+      padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .course-modal {
+      background: #fff; border-radius: 20px;
+      width: 100%; max-width: 620px; max-height: 90vh;
+      overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-hero {
+      position: relative; height: 180px; background: #1e3a5f;
+      border-radius: 20px 20px 0 0; overflow: hidden;
+    }
+    .modal-hero img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
+    .modal-hero-overlay {
+      position: absolute; inset: 0; padding: 24px;
+      background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .modal-hero-overlay h2 {
+      font-family: 'DM Serif Display', serif;
+      color: #fff; font-size: 1.6rem; line-height: 1.2;
+    }
+    .modal-hero-overlay .code-badge {
+      background: rgba(255,255,255,0.2); color: #fff;
+      font-size: 0.75rem; padding: 2px 10px; border-radius: 999px;
+      display: inline-block; margin-bottom: 6px; font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.9); border: none;
+      width: 32px; height: 32px; border-radius: 50%;
+      cursor: pointer; font-size: 1rem; display: flex;
+      align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: #fff; }
+
+    .modal-body { padding: 24px; }
+
+    .modal-meta-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 24px;
+    }
+    .meta-item { background: #f9fafb; border-radius: 10px; padding: 12px 14px; }
+    .meta-item .label { font-size: 0.72rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .meta-item .value { font-size: 0.9rem; font-weight: 600; margin-top: 3px; }
+
+    .modal-section h4 {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #9ca3af; font-weight: 700; margin-bottom: 12px;
+    }
+
+    .schedule-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+    .schedule-item {
+      display: flex; align-items: center; gap: 12px;
+      background: #eff6ff; border-radius: 10px; padding: 12px 14px;
+    }
+    .schedule-day {
+      background: #2563eb; color: #fff;
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 0.78rem; font-weight: 700; white-space: nowrap; min-width: 80px;
+      text-align: center;
+    }
+    .schedule-time { font-size: 0.88rem; font-weight: 600; color: #1e3a5f; }
+    .schedule-room { font-size: 0.8rem; color: #6b7280; margin-left: auto; }
+
+    .no-schedule { color: #9ca3af; font-size: 0.88rem; font-style: italic; }
+
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid #f3f4f6;
+      display: flex; justify-content: flex-end;
+    }
+    .btn-calendar {
+      background: #111; color: #fff; border: none;
+      padding: 10px 20px; border-radius: 8px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      font-weight: 600; font-size: 0.88rem;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-calendar:hover { background: #2563eb; }
+
+    .loading { text-align: center; color: #888; padding: 40px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="active">Courses</a>
+  <a href="/teachers.html">Teachers</a>
+  <a href="/students.html">Students</a>
+  <a href="/calendar.html">📅 Calendar</a>
+</nav>
+
+<div class="hero">
+  <h1>Find your next course today.</h1>
+  <p>Search across universities, degrees and terms. Click any course to see its full schedule.</p>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="e.g. Web Development, Databases…"/>
+    <button onclick="search()">Search</button>
+  </div>
+</div>
+
+<div class="main">
+  <div>
+    <div class="results-header">
+      <span id="resultCount">Loading courses…</span>
+    </div>
+    <div id="results"></div>
+  </div>
+
+  <aside>
+    <div class="sidebar-box">
+      <h4>🔔 Get updates</h4>
+      <input type="email" placeholder="enter email"/>
+      <button>Subscribe</button>
+    </div>
+    <div class="sidebar-box">
+      <h4>Related degrees</h4>
+      <div class="tags" id="relatedTags"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- Course Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="course-modal" id="courseModal">
+    <div class="modal-hero" id="modalHero">
+      <img id="modalImg" src="" alt="" onerror="this.style.display='none'"/>
+      <div class="modal-hero-overlay">
+        <span class="code-badge" id="modalCode"></span>
+        <h2 id="modalName"></h2>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-meta-grid">
+        <div class="meta-item">
+          <div class="label">Teacher</div>
+          <div class="value" id="modalTeacher"></div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Credits</div>
+          <div class="value" id="modalCredits"></div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Degree</div>
+          <div class="value" id="modalDegree"></div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Term</div>
+          <div class="value" id="modalTerm"></div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h4>📅 Class Schedule</h4>
+        <div class="schedule-list" id="modalSchedule"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <a href="/calendar.html" class="btn-calendar">View in Calendar →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "http://localhost:3000/api/v1";
+
+  async function loadCourses(query = "") {
+    const el      = document.getElementById("results");
+    const countEl = document.getElementById("resultCount");
+    el.innerHTML  = '<p class="loading">Loading…</p>';
+
+    try {
+      const url  = query ? `${API}/courses/search?q=${encodeURIComponent(query)}` : `${API}/courses`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      countEl.textContent = `${data.length} course(s) found`;
+      renderCourses(data);
+      renderTags(data);
+    } catch {
+      el.innerHTML = `<p class="loading" style="color:red">Could not connect to API. Is your Rails server running?</p>`;
+    }
+  }
+
+  function renderCourses(courses) {
+    const el = document.getElementById("results");
+    if (!courses.length) { el.innerHTML = '<p class="loading">No courses found.</p>'; return; }
+
+    el.innerHTML = courses.map(c => {
+      const img = c.image?.thumb
+        ? `<img class="card-img" src="${c.image.thumb}" alt="${c.name}"/>`
+        : `<div class="card-no-img">📚</div>`;
+      return `
+        <div class="card" onclick='openCourseModal(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
+          ${img}
+          <div class="card-body">
+            <h3>${c.name}</h3>
+            <div class="card-meta">
+              <span>👨‍🏫 ${c.teacher?.first_name} ${c.teacher?.last_name}</span>
+              <span>📚 ${c.degree?.name}</span>
+              <span>📅 ${c.term?.name}</span>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="badge">${c.credits} credits</span>
+              ${c.code ? `<span class="badge green">${c.code}</span>` : ""}
+              ${c.schedules?.length ? `<span class="badge">${c.schedules.length} class day(s)</span>` : ""}
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function renderTags(courses) {
+    const tags = [...new Set(courses.map(c => c.degree?.name).filter(Boolean))];
+    document.getElementById("relatedTags").innerHTML = tags
+      .map(t => `<span class="tag" onclick="search('${t}')">${t}</span>`).join("");
+  }
+
+  // ── Modal ──
+  function openCourseModal(course) {
+    document.getElementById("modalImg").src        = course.image?.url || "";
+    document.getElementById("modalCode").textContent  = course.code || "";
+    document.getElementById("modalName").textContent  = course.name;
+    document.getElementById("modalTeacher").textContent = course.teacher
+      ? `${course.teacher.first_name} ${course.teacher.last_name}` : "—";
+    document.getElementById("modalCredits").textContent = `${course.credits} ECTS`;
+    document.getElementById("modalDegree").textContent  = course.degree?.name || "—";
+    document.getElementById("modalTerm").textContent    = course.term?.name || "—";
+
+    const scheduleEl = document.getElementById("modalSchedule");
+    if (!course.schedules?.length) {
+      scheduleEl.innerHTML = `<p class="no-schedule">No scheduled classes yet.</p>`;
+    } else {
+      const dayOrder = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+      const sorted   = [...course.schedules].sort((a,b) =>
+        dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week));
+      scheduleEl.innerHTML = sorted.map(s => `
+        <div class="schedule-item">
+          <span class="schedule-day">${s.day_of_week}</span>
+          <span class="schedule-time">${formatTime(s.start_time)} — ${formatTime(s.end_time)}</span>
+          <span class="schedule-room">🚪 ${s.room}</span>
+        </div>`).join("");
+    }
+
+    document.getElementById("modalOverlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById("modalOverlay")) closeModal();
+  }
+
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  function formatTime(timeStr) {
+    if (!timeStr) return "";
+    // Rails returns full datetime string for time columns — grab just HH:MM
+    return timeStr.substring(11, 16) || timeStr.substring(0, 5);
+  }
+
+  function search(q) {
+    const query = q || document.getElementById("searchInput").value;
+    loadCourses(query);
+  }
+
+  document.getElementById("searchInput")
+    .addEventListener("keydown", e => { if (e.key === "Enter") search(); });
+
+  loadCourses();
+</script>
+</body>
+</html>

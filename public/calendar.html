@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule Calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #0f172a;
+      --surface:  #1e293b;
+      --surface2: #263348;
+      --border:   #334155;
+      --text:     #f1f5f9;
+      --muted:    #64748b;
+      --accent:   #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Nav ── */
+    nav {
+      background: var(--surface); padding: 14px 28px;
+      display: flex; gap: 24px; align-items: center;
+      border-bottom: 1px solid var(--border); font-weight: 600;
+    }
+    nav a { text-decoration: none; color: var(--muted); font-size: 0.88rem; transition: color 0.15s; }
+    nav a:hover { color: var(--text); }
+    nav a.active { color: #60a5fa; }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 256px 1fr;
+      min-height: calc(100vh - 49px);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface); border-right: 1px solid var(--border);
+      padding: 24px; overflow-y: auto;
+    }
+    .sidebar-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem; margin-bottom: 20px; color: var(--text);
+    }
+
+    /* Cascading steps */
+    .step { position: relative; padding-left: 24px; margin-bottom: 18px; }
+    .step:not(:last-child)::after {
+      content: ''; position: absolute; left: 7px; top: 22px;
+      bottom: -18px; width: 1px; background: var(--border);
+    }
+    .step-num {
+      position: absolute; left: 0; top: 0;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--border); color: var(--muted);
+      font-size: 0.6rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .step-num.done { background: #10b981; color: #fff; }
+    .step-num.active { background: var(--accent); color: #fff; }
+    .step-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px;
+    }
+
+    select {
+      width: 100%; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      cursor: pointer; outline: none; transition: border-color 0.15s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%2364748b' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center;
+      padding-right: 28px;
+    }
+    select:disabled { opacity: 0.35; cursor: not-allowed; }
+    select:focus:not(:disabled) { border-color: var(--accent); }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    .btn-apply {
+      width: 100%; margin-top: 20px; padding: 9px;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+      font-weight: 700; font-size: 0.85rem; transition: background 0.15s;
+    }
+    .btn-apply:hover { background: #2563eb; }
+    .btn-reset {
+      width: 100%; margin-top: 6px; padding: 8px;
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem; transition: all 0.15s;
+    }
+    .btn-reset:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Main area ── */
+    .main { padding: 20px 24px; display: flex; flex-direction: column; overflow: hidden; }
+
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; flex-wrap: wrap; gap: 12px;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 10px; }
+    .nav-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); width: 30px; height: 30px; border-radius: 7px;
+      cursor: pointer; font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .nav-title {
+      font-family: 'DM Serif Display', serif; font-size: 1.3rem;
+      min-width: 220px; text-align: center;
+    }
+    .btn-today {
+      padding: 5px 12px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text); cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.8rem; transition: all 0.15s;
+    }
+    .btn-today:hover { border-color: var(--accent); color: var(--accent); }
+
+    .view-toggle { display: flex; background: var(--surface); border-radius: 8px; padding: 3px; gap: 2px; }
+    .view-btn {
+      padding: 5px 13px; border: none; background: transparent;
+      color: var(--muted); border-radius: 6px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      font-weight: 600; transition: all 0.15s;
+    }
+    .view-btn.active { background: var(--accent); color: #fff; }
+
+    /* ── Legend ── */
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; min-height: 20px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.76rem; color: var(--muted); }
+    .legend-swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── Year view ── */
+    .year-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      overflow-y: auto;
+    }
+    .mini-month {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+    }
+    .mini-month-title { font-weight: 700; font-size: 0.82rem; margin-bottom: 8px; }
+    .mini-dh {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 3px;
+    }
+    .mini-dh span {
+      text-align: center; font-size: 0.6rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .mini-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+    .mday {
+      aspect-ratio: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border-radius: 4px; font-size: 0.67rem; position: relative;
+    }
+    .mday.other { opacity: 0.2; }
+    .mday.has-ev { cursor: pointer; }
+    .mday.has-ev:hover { background: var(--surface2); }
+    .mday.is-today .dnum {
+      background: var(--accent); color: #fff;
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.62rem;
+    }
+    .dots { display: flex; gap: 1px; flex-wrap: wrap; justify-content: center; margin-top: 1px; }
+    .dot { width: 3px; height: 3px; border-radius: 50%; }
+
+    /* ── Month view ── */
+    .month-grid {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; flex: 1;
+    }
+    .month-hdr {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      border-bottom: 1px solid var(--border);
+    }
+    .month-hdr-cell {
+      padding: 10px 8px; text-align: center; font-size: 0.72rem;
+      font-weight: 700; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .month-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .mfday {
+      min-height: 90px; border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border); padding: 7px;
+    }
+    .mfday:nth-child(7n) { border-right: none; }
+    .mfday.other { opacity: 0.25; }
+    .mfday-num {
+      font-size: 0.76rem; font-weight: 700; color: var(--muted); margin-bottom: 4px;
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+    }
+    .mfday.is-today .mfday-num {
+      background: var(--accent); color: #fff; border-radius: 50%;
+    }
+    .mf-event {
+      font-size: 0.68rem; padding: 2px 5px; border-radius: 3px;
+      margin-bottom: 2px; cursor: pointer; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      border-left: 2px solid transparent; transition: opacity 0.15s;
+    }
+    .mf-event:hover { opacity: 0.8; }
+    .more { font-size: 0.66rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── Time grid (week + day) ── */
+    .tgrid {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .tg-hdr { display: grid; border-bottom: 1px solid var(--border); }
+    .tg-hdr-cell {
+      padding: 10px 8px; text-align: center;
+      font-size: 0.72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; border-right: 1px solid var(--border);
+    }
+    .tg-hdr-cell:last-child { border-right: none; }
+    .tg-hdr-cell .date-sub { font-size: 0.68rem; color: var(--muted); font-weight: 400; margin-top: 2px; text-transform: none; }
+    .tg-body { display: flex; max-height: calc(100vh - 260px); overflow-y: auto; }
+    .tg-times { width: 52px; flex-shrink: 0; border-right: 1px solid var(--border); }
+    .tg-time {
+      height: 60px; display: flex; align-items: flex-start;
+      justify-content: center; padding-top: 5px;
+      font-size: 0.66rem; color: var(--muted); font-weight: 600;
+      border-bottom: 1px solid rgba(51,65,85,0.4);
+    }
+    .tg-days { flex: 1; display: grid; }
+    .tg-dcol { border-right: 1px solid var(--border); position: relative; }
+    .tg-dcol:last-child { border-right: none; }
+    .tg-hline { height: 60px; border-bottom: 1px solid rgba(51,65,85,0.25); }
+    .tg-ev {
+      position: absolute; left: 3px; right: 3px;
+      border-radius: 6px; padding: 5px 7px;
+      font-size: 0.71rem; cursor: pointer; overflow: hidden;
+      border-left: 3px solid transparent; transition: transform 0.15s, opacity 0.15s;
+    }
+    .tg-ev:hover { transform: scale(1.02); z-index: 10; opacity: 0.9; }
+    .tg-ev-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tg-ev-sub  { font-size: 0.65rem; opacity: 0.75; margin-top: 2px; }
+
+    /* ── Day popover ── */
+    .popover {
+      display: none; position: fixed;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 11px; padding: 14px; z-index: 999;
+      min-width: 200px; max-width: 260px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .popover.open { display: block; }
+    .pop-title {
+      font-weight: 700; font-size: 0.8rem; color: var(--muted);
+      margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+    .pop-ev { padding: 7px 0; border-bottom: 1px solid rgba(51,65,85,0.4); }
+    .pop-ev:last-child { border-bottom: none; }
+    .pop-ev-name { font-weight: 700; font-size: 0.82rem; }
+    .pop-ev-detail { font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
+
+    .empty { padding: 60px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html">Courses</a>
+  <a href="/teachers.html">Teachers</a>
+  <a href="/students.html">Students</a>
+  <a href="/calendar.html" class="active">📅 Calendar</a>
+</nav>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Filters</div>
+
+    <!-- Step 1: University -->
+    <div class="step" id="step1">
+      <div class="step-num active" id="dot1">1</div>
+      <div class="step-label">University</div>
+      <select id="selUni">
+        <option value="">All Universities</option>
+      </select>
+    </div>
+
+    <!-- Step 2: Season + Year -->
+    <div class="step" id="step2">
+      <div class="step-num" id="dot2">2</div>
+      <div class="step-label">Season & Year</div>
+      <div class="row2">
+        <select id="selSeason">
+          <option value="">All Seasons</option>
+          <option>Spring</option>
+          <option>Summer</option>
+          <option>Autumn</option>
+          <option>Winter</option>
+        </select>
+        <select id="selYear">
+          <option value="">All Years</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 3: Term -->
+    <div class="step" id="step3">
+      <div class="step-num" id="dot3">3</div>
+      <div class="step-label">Term</div>
+      <select id="selTerm" disabled>
+        <option value="">Select university first</option>
+      </select>
+    </div>
+
+    <!-- Step 4: Degree -->
+    <div class="step" id="step4">
+      <div class="step-num" id="dot4">4</div>
+      <div class="step-label">Degree</div>
+      <select id="selDegree" disabled>
+        <option value="">Select term first</option>
+      </select>
+    </div>
+
+    <!-- Step 5: Course -->
+    <div class="step" id="step5">
+      <div class="step-num" id="dot5">5</div>
+      <div class="step-label">Course (optional)</div>
+      <select id="selCourse" disabled>
+        <option value="">All Courses</option>
+      </select>
+    </div>
+
+    <button class="btn-reset" onclick="resetAll()">Reset all filters</button>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="nav-btn" onclick="navigate(-1)">&#8249;</button>
+        <span class="nav-title" id="navTitle"></span>
+        <button class="nav-btn" onclick="navigate(1)">&#8250;</button>
+        <button class="btn-today" onclick="goToToday()">Today</button>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="year"  onclick="setView('year')">Year</button>
+        <button class="view-btn"        data-view="month" onclick="setView('month')">Month</button>
+        <button class="view-btn"        data-view="week"  onclick="setView('week')">Week</button>
+        <button class="view-btn"        data-view="day"   onclick="setView('day')">Day</button>
+      </div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+    <div id="calContent"></div>
+  </div>
+</div>
+
+<!-- Popover for day events -->
+<div class="popover" id="popover"></div>
+
+<script>
+// ════════════════════════════════════════
+// Constants
+// ════════════════════════════════════════
+const API = 'http://localhost:3000/api/v1';
+const MN  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MNS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DNW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DAY_MAP = { Sunday:0, Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6 };
+const START_H = 8, END_H = 20, HOUR_PX = 60;
+const PALETTE = ['#3b82f6','#10b981','#f97316','#8b5cf6','#ec4899','#14b8a6','#eab308','#f43f5e'];
+const PALETTE_BG = [
+  'rgba(59,130,246,0.18)','rgba(16,185,129,0.18)','rgba(249,115,22,0.18)',
+  'rgba(139,92,246,0.18)','rgba(236,72,153,0.18)','rgba(20,184,166,0.18)',
+  'rgba(234,179,8,0.18)','rgba(244,63,94,0.18)'
+];
+
+// ════════════════════════════════════════
+// State
+// ════════════════════════════════════════
+const state = {
+  view: 'year',
+  date: new Date(2025, 8, 1), // Sep 2025 — where seed data starts
+  schedules: [],
+  events: new Map(),
+  colorMap: {},
+  colorIdx: 0,
+  filters: { uni:'', season:'', year:'', term:'', degree:'', course:'' },
+  data: { unis:[], terms:[], degrees:[], courses:[] }
+};
+
+// ════════════════════════════════════════
+// Color helpers
+// ════════════════════════════════════════
+function getColor(courseId) {
+  if (state.colorMap[courseId] === undefined) {
+    state.colorMap[courseId] = state.colorIdx++ % PALETTE.length;
+  }
+  const i = state.colorMap[courseId];
+  return { color: PALETTE[i], bg: PALETTE_BG[i] };
+}
+
+// ════════════════════════════════════════
+// Time helpers
+// ════════════════════════════════════════
+function parseTime(str) {
+  if (!str) return [0, 0];
+  if (str.includes('T')) { const d = new Date(str); return [d.getUTCHours(), d.getUTCMinutes()]; }
+  const p = str.split(':'); return [parseInt(p[0]), parseInt(p[1])];
+}
+function fmtTime(str) {
+  const [h, m] = parseTime(str);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function toKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getMonday(d) {
+  const x = new Date(d), day = x.getDay();
+  x.setDate(x.getDate() - day + (day === 0 ? -6 : 1));
+  return x;
+}
+function sameDay(a, b) { return a.toDateString() === b.toDateString(); }
+
+// ════════════════════════════════════════
+// Event computation
+// ════════════════════════════════════════
+function computeEvents(schedules) {
+  const map = new Map();
+  schedules.forEach(s => {
+    const term = s.course?.term;
+    if (!term?.start_date || !term?.end_date) return;
+    const targetDay = DAY_MAP[s.day_of_week];
+    if (targetDay === undefined) return;
+
+    const start = new Date(term.start_date + 'T00:00:00');
+    const end   = new Date(term.end_date   + 'T00:00:00');
+
+    const curr = new Date(start);
+    const diff = (targetDay - curr.getDay() + 7) % 7;
+    curr.setDate(curr.getDate() + diff);
+
+    while (curr <= end) {
+      const key = toKey(curr);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
+      curr.setDate(curr.getDate() + 7);
+    }
+  });
+  return map;
+}
+
+// ════════════════════════════════════════
+// API calls
+// ════════════════════════════════════════
+async function loadUniversities() {
+  const r = await fetch(`${API}/universities`);
+  state.data.unis = await r.json();
+  const sel = document.getElementById('selUni');
+  sel.innerHTML = '<option value="">All Universities</option>' +
+    state.data.unis.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+}
+
+async function loadTerms() {
+  const p = new URLSearchParams();
+  if (state.filters.uni)    p.set('university_id', state.filters.uni);
+  if (state.filters.season) p.set('season', state.filters.season);
+  if (state.filters.year)   p.set('year',   state.filters.year);
+  const r = await fetch(`${API}/terms?${p}`);
+  state.data.terms = await r.json();
+
+  const sel = document.getElementById('selTerm');
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">All Terms</option>' +
+    state.data.terms.map(t => `<option value="${t.id}">${t.name}${t.season ? ` — ${t.season} ${t.year}` : ''}</option>`).join('');
+  updateDots();
+}
+
+async function loadDegrees() {
+  const url = state.filters.term ? `${API}/degrees?term_id=${state.filters.term}` : `${API}/degrees`;
+  const r   = await fetch(url);
+  state.data.degrees = await r.json();
+
+  const sel = document.getElementById('selDegree');
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">All Degrees</option>' +
+    state.data.degrees.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  updateDots();
+}
+
+async function loadCourses() {
+  const url = state.filters.degree ? `${API}/courses/search?degree_id=${state.filters.degree}` : `${API}/courses`;
+  const r   = await fetch(url);
+  state.data.courses = await r.json();
+
+  const sel = document.getElementById('selCourse');
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">All Courses</option>' +
+    state.data.courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function loadSchedules() {
+  const p = new URLSearchParams();
+  if (state.filters.term)   p.set('term_id',   state.filters.term);
+  if (state.filters.degree) p.set('degree_id', state.filters.degree);
+  const r = await fetch(`${API}/schedules?${p}`);
+  let schedules = await r.json();
+
+  // Client-side course filter
+  if (state.filters.course) {
+    schedules = schedules.filter(s => String(s.course?.id) === String(state.filters.course));
+  }
+
+  state.schedules  = schedules;
+  state.events     = computeEvents(schedules);
+  state.colorMap   = {};
+  state.colorIdx   = 0;
+  buildLegend();
+  renderCalendar();
+}
+
+// ════════════════════════════════════════
+// Filter cascade event handlers
+// ════════════════════════════════════════
+document.getElementById('selUni').addEventListener('change', async function() {
+  state.filters.uni = this.value;
+  state.filters.term = state.filters.degree = state.filters.course = '';
+  resetSelect('selDegree', 'Select term first');
+  resetSelect('selCourse', 'All Courses', true);
+  await loadTerms();
+  await loadSchedules();
+});
+
+document.getElementById('selSeason').addEventListener('change', async function() {
+  state.filters.season = this.value;
+  await loadTerms();
+});
+
+document.getElementById('selYear').addEventListener('change', async function() {
+  state.filters.year = this.value;
+  await loadTerms();
+});
+
+document.getElementById('selTerm').addEventListener('change', async function() {
+  state.filters.term   = this.value;
+  state.filters.degree = state.filters.course = '';
+  resetSelect('selCourse', 'All Courses', true);
+
+  if (this.value) {
+    await loadDegrees();
+    // Jump calendar to term's start date
+    const term = state.data.terms.find(t => String(t.id) === this.value);
+    if (term?.start_date) {
+      state.date = new Date(term.start_date + 'T00:00:00');
+    }
+  } else {
+    resetSelect('selDegree', 'Select term first', false);
+  }
+
+  await loadSchedules();
+});
+
+document.getElementById('selDegree').addEventListener('change', async function() {
+  state.filters.degree = this.value;
+  state.filters.course = '';
+  if (this.value) await loadCourses();
+  else resetSelect('selCourse', 'All Courses', true);
+  await loadSchedules();
+});
+
+document.getElementById('selCourse').addEventListener('change', async function() {
+  state.filters.course = this.value;
+  await loadSchedules();
+});
+
+function resetSelect(id, placeholder = 'All', disable = false) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = `<option value="">${placeholder}</option>`;
+  sel.disabled  = disable;
+  sel.value     = '';
+}
+
+async function resetAll() {
+  ['selUni','selSeason','selYear'].forEach(id => { document.getElementById(id).value = ''; });
+  resetSelect('selTerm',   'Select university first', true);
+  resetSelect('selDegree', 'Select term first',       true);
+  resetSelect('selCourse', 'All Courses',             true);
+  state.filters = { uni:'', season:'', year:'', term:'', degree:'', course:'' };
+  state.date    = new Date(2025, 8, 1);
+  updateDots();
+  await loadSchedules();
+}
+
+function updateDots() {
+  const steps = [
+    { id:'dot1', active: true },
+    { id:'dot2', active: true },
+    { id:'dot3', active: !!state.filters.uni   || state.data.terms.length   > 0 },
+    { id:'dot4', active: !!state.filters.term   || state.data.degrees.length > 0 },
+    { id:'dot5', active: !!state.filters.degree },
+  ];
+  steps.forEach(s => {
+    const el = document.getElementById(s.id);
+    el.classList.toggle('active', s.active);
+    el.classList.toggle('done',   false);
+  });
+  if (state.filters.uni)    document.getElementById('dot1').classList.replace('active','done');
+  if (state.filters.term)   document.getElementById('dot3').classList.replace('active','done');
+  if (state.filters.degree) document.getElementById('dot4').classList.replace('active','done');
+}
+
+// ════════════════════════════════════════
+// Legend
+// ════════════════════════════════════════
+function buildLegend() {
+  const seen = {};
+  const items = [];
+  state.schedules.forEach(s => {
+    if (!seen[s.course?.id]) {
+      seen[s.course.id] = true;
+      const { color } = getColor(s.course.id);
+      items.push(`<div class="legend-item"><div class="legend-swatch" style="background:${color}"></div>${s.course.name}</div>`);
+    }
+  });
+  document.getElementById('legend').innerHTML = items.join('');
+}
+
+// ════════════════════════════════════════
+// Navigation & view
+// ════════════════════════════════════════
+function setView(v) {
+  state.view = v;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  renderCalendar();
+}
+
+function navigate(dir) {
+  const d = state.date;
+  if (state.view === 'year')  d.setFullYear(d.getFullYear() + dir);
+  if (state.view === 'month') d.setMonth(d.getMonth() + dir);
+  if (state.view === 'week')  d.setDate(d.getDate() + dir * 7);
+  if (state.view === 'day')   d.setDate(d.getDate() + dir);
+  renderCalendar();
+}
+
+function goToToday() {
+  state.date = new Date();
+  renderCalendar();
+}
+
+function goToDay(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  state.date = new Date(y, m - 1, d);
+  setView('day');
+  hidePopover();
+}
+
+function updateNavTitle() {
+  const d   = state.date;
+  const mon = getMonday(d);
+  const fri = new Date(mon); fri.setDate(fri.getDate() + 4);
+  const titles = {
+    year:  `${d.getFullYear()}`,
+    month: `${MN[d.getMonth()]} ${d.getFullYear()}`,
+    week:  `${mon.getDate()} ${MNS[mon.getMonth()]} – ${fri.getDate()} ${MNS[fri.getMonth()]} ${fri.getFullYear()}`,
+    day:   `${DNW[d.getDay()]}, ${d.getDate()} ${MN[d.getMonth()]} ${d.getFullYear()}`
+  };
+  document.getElementById('navTitle').textContent = titles[state.view];
+}
+
+// ════════════════════════════════════════
+// Render dispatcher
+// ════════════════════════════════════════
+function renderCalendar() {
+  updateNavTitle();
+  hidePopover();
+  const fns = { year: renderYear, month: renderMonth, week: renderWeek, day: renderDay };
+  fns[state.view]();
+}
+
+// ════════════════════════════════════════
+// Year view — 12 mini months
+// ════════════════════════════════════════
+function renderYear() {
+  const year    = state.date.getFullYear();
+  const today   = new Date();
+  let   html    = '<div class="year-grid">';
+
+  for (let m = 0; m < 12; m++) {
+    const first   = new Date(year, m, 1);
+    const last    = new Date(year, m + 1, 0);
+    let   startDow = first.getDay() - 1;
+    if (startDow < 0) startDow = 6;
+
+    html += `<div class="mini-month">
+      <div class="mini-month-title">${MN[m]} ${year}</div>
+      <div class="mini-dh">${['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=>`<span>${d}</span>`).join('')}</div>
+      <div class="mini-days">`;
+
+    // Empty lead
+    for (let i = 0; i < startDow; i++) html += '<div class="mday other"></div>';
+
+    for (let d = 1; d <= last.getDate(); d++) {
+      const date   = new Date(year, m, d);
+      const key    = toKey(date);
+      const evs    = state.events.get(key) || [];
+      const isToday = sameDay(date, today);
+      const ids    = [...new Set(evs.map(e => e.course.id))];
+      const dots   = ids.slice(0,3).map(id => `<div class="dot" style="background:${getColor(id).color}"></div>`).join('');
+
+      html += `<div class="mday ${isToday?'is-today':''} ${ids.length?'has-ev':''}"
+               ${ids.length ? `onclick="showDayPopover(event,'${key}')"` : ''}>
+        <span class="dnum">${d}</span>
+        ${dots ? `<div class="dots">${dots}</div>` : ''}
+      </div>`;
+    }
+
+    // Trailing empty
+    const total = startDow + last.getDate();
+    const trail = (7 - (total % 7)) % 7;
+    for (let i = 0; i < trail; i++) html += '<div class="mday other"></div>';
+
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  document.getElementById('calContent').innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// Month view — full grid
+// ════════════════════════════════════════
+function renderMonth() {
+  const year  = state.date.getFullYear();
+  const month = state.date.getMonth();
+  const first = new Date(year, month, 1);
+  const last  = new Date(year, month + 1, 0);
+  const today = new Date();
+
+  let html = `<div class="month-grid">
+    <div class="month-hdr">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(h=>`<div class="month-hdr-cell">${h}</div>`).join('')}</div>
+    <div class="month-days">`;
+
+  for (let i = 0; i < first.getDay(); i++) html += '<div class="mfday other"></div>';
+
+  for (let d = 1; d <= last.getDate(); d++) {
+    const date  = new Date(year, month, d);
+    const key   = toKey(date);
+    const evs   = state.events.get(key) || [];
+    const isT   = sameDay(date, today);
+
+    // Unique courses per day
+    const seen = {}; const unique = [];
+    evs.forEach(e => { if (!seen[e.course.id]) { seen[e.course.id]=true; unique.push(e); } });
+
+    const show = unique.slice(0, 3);
+    const more = unique.length - show.length;
+
+    html += `<div class="mfday ${isT?'is-today':''}">
+      <div class="mfday-num">${d}</div>
+      ${show.map(e => {
+        const { color, bg } = getColor(e.course.id);
+        return `<div class="mf-event" style="background:${bg};color:${color};border-left-color:${color}"
+                     onclick="showDayPopover(event,'${key}')">${e.course.name}</div>`;
+      }).join('')}
+      ${more > 0 ? `<div class="more">+${more} more</div>` : ''}
+    </div>`;
+  }
+
+  const total = first.getDay() + last.getDate();
+  const trail = (7 - (total % 7)) % 7;
+  for (let i = 0; i < trail; i++) html += '<div class="mfday other"></div>';
+
+  html += '</div></div>';
+  document.getElementById('calContent').innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// Week view — time grid Mon–Fri
+// ════════════════════════════════════════
+function renderWeek() {
+  const mon = getMonday(state.date);
+  const days = Array.from({ length: 5 }, (_, i) => { const d = new Date(mon); d.setDate(d.getDate() + i); return d; });
+
+  let html = `<div class="tgrid">
+    <div class="tg-hdr" style="grid-template-columns:52px repeat(5,1fr)">
+      <div class="tg-hdr-cell"></div>
+      ${days.map(d => `<div class="tg-hdr-cell">${DNW[d.getDay()]}<div class="date-sub">${d.getDate()} ${MNS[d.getMonth()]}</div></div>`).join('')}
+    </div>
+    <div class="tg-body">
+      <div class="tg-times">
+        ${Array.from({length: END_H - START_H}, (_,i) => `<div class="tg-time">${String(START_H+i).padStart(2,'0')}:00</div>`).join('')}
+      </div>
+      <div class="tg-days" style="grid-template-columns:repeat(5,1fr)">`;
+
+  days.forEach(d => {
+    const key  = toKey(d);
+    const evs  = state.events.get(key) || [];
+
+    html += '<div class="tg-dcol">';
+    for (let h = START_H; h < END_H; h++) html += '<div class="tg-hline"></div>';
+
+    evs.forEach(s => {
+      const [sh, sm] = parseTime(s.start_time);
+      const [eh, em] = parseTime(s.end_time);
+      const top  = ((sh - START_H) * HOUR_PX) + (sm / 60 * HOUR_PX);
+      const hgt  = Math.max(((eh - sh) * HOUR_PX) + ((em - sm) / 60 * HOUR_PX), 28);
+      const { color, bg } = getColor(s.course.id);
+      html += `<div class="tg-ev" style="top:${top}px;height:${hgt}px;background:${bg};border-left-color:${color};color:${color}">
+        <div class="tg-ev-name">${s.course.name}</div>
+        <div class="tg-ev-sub">🚪 ${s.room} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}</div>
+      </div>`;
+    });
+
+    html += '</div>';
+  });
+
+  html += '</div></div></div>';
+  document.getElementById('calContent').innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// Day view
+// ════════════════════════════════════════
+function renderDay() {
+  const key  = toKey(state.date);
+  const evs  = state.events.get(key) || [];
+  const label = `${DNW[state.date.getDay()]}, ${state.date.getDate()} ${MN[state.date.getMonth()]} ${state.date.getFullYear()}`;
+
+  let html = `<div class="tgrid">
+    <div class="tg-hdr" style="grid-template-columns:52px 1fr">
+      <div class="tg-hdr-cell"></div>
+      <div class="tg-hdr-cell">${label}</div>
+    </div>
+    <div class="tg-body">
+      <div class="tg-times">
+        ${Array.from({length: END_H - START_H}, (_,i) => `<div class="tg-time">${String(START_H+i).padStart(2,'0')}:00</div>`).join('')}
+      </div>
+      <div class="tg-days" style="grid-template-columns:1fr">
+        <div class="tg-dcol">`;
+
+  for (let h = START_H; h < END_H; h++) html += '<div class="tg-hline"></div>';
+
+  if (!evs.length) {
+    html += '<div class="empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">No classes scheduled</div>';
+  }
+
+  evs.forEach(s => {
+    const [sh, sm] = parseTime(s.start_time);
+    const [eh, em] = parseTime(s.end_time);
+    const top = ((sh - START_H) * HOUR_PX) + (sm / 60 * HOUR_PX);
+    const hgt = Math.max(((eh - sh) * HOUR_PX) + ((em - sm) / 60 * HOUR_PX), 40);
+    const { color, bg } = getColor(s.course.id);
+    html += `<div class="tg-ev" style="top:${top}px;height:${hgt}px;background:${bg};border-left-color:${color};color:${color};left:8px;right:8px">
+      <div class="tg-ev-name">${s.course.name}</div>
+      <div class="tg-ev-sub" style="margin-top:3px">${s.course.teacher?.first_name} ${s.course.teacher?.last_name}</div>
+      <div class="tg-ev-sub">🚪 ${s.room} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}</div>
+    </div>`;
+  });
+
+  html += '</div></div></div></div>';
+  document.getElementById('calContent').innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// Day popover (year + month clicks)
+// ════════════════════════════════════════
+function showDayPopover(e, key) {
+  e.stopPropagation();
+  const evs = state.events.get(key) || [];
+  if (!evs.length) return;
+
+  const [y, m, d] = key.split('-').map(Number);
+  const label = `${DNW[new Date(y,m-1,d).getDay()]}, ${d} ${MNS[m-1]} ${y}`;
+
+  const seen = {}; const unique = [];
+  evs.forEach(s => { if (!seen[s.course.id]) { seen[s.course.id]=true; unique.push(s); } });
+
+  const pop = document.getElementById('popover');
+  pop.innerHTML = `
+    <div class="pop-title">${label}
+      <span style="float:right;cursor:pointer;color:var(--muted)" onclick="goToDay('${key}')">→ Day view</span>
+    </div>
+    ${unique.map(s => {
+      const { color } = getColor(s.course.id);
+      return `<div class="pop-ev">
+        <div class="pop-ev-name" style="color:${color}">${s.course.name}</div>
+        <div class="pop-ev-detail">${fmtTime(s.start_time)}–${fmtTime(s.end_time)} · 🚪 ${s.room}</div>
+        <div class="pop-ev-detail">${s.course.term?.name ?? ''}</div>
+      </div>`;
+    }).join('')}
+  `;
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  pop.style.left = `${Math.min(rect.right + 8, window.innerWidth - 280)}px`;
+  pop.style.top  = `${Math.max(rect.top, 8)}px`;
+  pop.classList.add('open');
+}
+
+function hidePopover() { document.getElementById('popover').classList.remove('open'); }
+document.addEventListener('click', hidePopover);
+
+// ════════════════════════════════════════
+// Init
+// ════════════════════════════════════════
+async function init() {
+  // Populate year dropdown (current year ±2)
+  const cy  = new Date().getFullYear();
+  const ysl = document.getElementById('selYear');
+  for (let y = cy - 1; y <= cy + 2; y++) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    ysl.appendChild(o);
+  }
+
+  await Promise.all([loadUniversities(), loadSchedules()]);
+}
+
+init();
+</script>
+</body>
+</html>

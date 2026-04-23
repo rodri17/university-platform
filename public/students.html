@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Students</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, sans-serif; background: #f4f4f5; color: #111; }
+
+    nav {
+      background: #fff; padding: 16px 32px;
+      display: flex; gap: 24px;
+      border-bottom: 1px solid #e5e7eb; font-weight: 600;
+    }
+    nav a { text-decoration: none; color: #555; }
+    nav a:hover, nav a.active { color: #2563eb; }
+
+    .page { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 800; }
+
+    button.btn-primary {
+      background: #2563eb; color: #fff; border: none;
+      padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+    }
+    button.btn-primary:hover { background: #1d4ed8; }
+    button.btn-danger {
+      background: #fff; color: #dc2626; border: 1px solid #dc2626;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+    button.btn-danger:hover { background: #fef2f2; }
+    button.btn-edit {
+      background: #fff; color: #2563eb; border: 1px solid #2563eb;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+    button.btn-edit:hover { background: #eff6ff; }
+    button.btn-view {
+      background: #fff; color: #059669; border: 1px solid #059669;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+    button.btn-view:hover { background: #ecfdf5; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 0.8rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 14px 16px; border-top: 1px solid #f3f4f6; font-size: 0.9rem; }
+    tr:hover td { background: #fafafa; }
+
+    /* Detail panel */
+    .detail-panel {
+      display: none;
+      background: #fff; border-radius: 12px;
+      padding: 24px; margin-top: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .detail-panel.open { display: block; }
+    .detail-panel h2 { font-size: 1.1rem; margin-bottom: 16px; }
+    .enrollment-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem;
+    }
+    .status-badge {
+      padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .status-active    { background: #d1fae5; color: #065f46; }
+    .status-completed { background: #dbeafe; color: #1e40af; }
+    .status-dropped   { background: #fee2e2; color: #991b1b; }
+    .status-failed    { background: #fef3c7; color: #92400e; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      justify-content: center; align-items: center; z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px;
+      padding: 32px; width: 100%; max-width: 460px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    .form-group input,
+    .form-group select {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; outline: none;
+    }
+    .form-group input:focus { border-color: #2563eb; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .btn-cancel { background: #f3f4f6; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+    .error-msg { color: #dc2626; font-size: 0.85rem; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html">Courses</a>
+  <a href="/teachers.html">Teachers</a>
+  <a href="/students.html" class="active">Students</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Students</h1>
+    <button class="btn-primary" onclick="openModal()">+ Add Student</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>University</th>
+        <th>Enrollments</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="studentList">
+      <tr><td colspan="5" style="text-align:center;color:#888;padding:32px">Loading...</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Inline detail panel for enrollments -->
+  <div class="detail-panel" id="detailPanel">
+    <h2 id="detailTitle"></h2>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add Student</h2>
+    <div class="form-group">
+      <label>First Name</label>
+      <input type="text" id="firstName" placeholder="Alice" />
+    </div>
+    <div class="form-group">
+      <label>Last Name</label>
+      <input type="text" id="lastName" placeholder="Silva" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="alice@mit.eu" />
+    </div>
+    <div class="form-group">
+      <label>University</label>
+      <select id="universityId"></select>
+    </div>
+    <p class="error-msg" id="errorMsg"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveStudent()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "http://localhost:3000/api/v1";
+  let editingId = null;
+
+  async function loadStudents() {
+    const res  = await fetch(`${API}/students`);
+    const data = await res.json();
+    const tbody = document.getElementById("studentList");
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td><strong>${s.first_name} ${s.last_name}</strong></td>
+        <td>${s.email}</td>
+        <td>${s.university?.name ?? "—"}</td>
+        <td>${s.courses?.length ?? 0} course(s)</td>
+        <td style="display:flex;gap:8px">
+          <button class="btn-view"   onclick="viewStudent(${s.id})">View</button>
+          <button class="btn-edit"   onclick="openModal(${s.id})">Edit</button>
+          <button class="btn-danger" onclick="deleteStudent(${s.id})">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function viewStudent(id) {
+    const res    = await fetch(`${API}/students/${id}`);
+    const data   = await res.json();
+    const panel  = document.getElementById("detailPanel");
+    const title  = document.getElementById("detailTitle");
+    const content = document.getElementById("detailContent");
+
+    title.textContent = `${data.first_name} ${data.last_name} — Enrollments`;
+
+    if (!data.enrollments?.length) {
+      content.innerHTML = `<p style="color:#888">No enrollments yet.</p>`;
+    } else {
+      content.innerHTML = data.enrollments.map(e => `
+        <div class="enrollment-row">
+          <div>
+            <strong>${e.course?.name ?? "Unknown course"}</strong>
+            <div style="color:#666;font-size:0.8rem;margin-top:2px">${e.course?.code ?? ""}</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            ${e.final_grade != null ? `<span style="font-weight:600">${e.final_grade}</span>` : ""}
+            <span class="status-badge status-${e.status}">${e.status}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    panel.classList.add("open");
+    panel.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function loadUniversities(selectedId = null) {
+    const res  = await fetch(`${API}/universities`);
+    const data = await res.json();
+    const sel  = document.getElementById("universityId");
+    sel.innerHTML = data.map(u =>
+      `<option value="${u.id}" ${u.id === selectedId ? "selected" : ""}>${u.name}</option>`
+    ).join("");
+  }
+
+  async function openModal(id = null) {
+    editingId = id;
+    document.getElementById("errorMsg").textContent = "";
+    document.getElementById("modalTitle").textContent = id ? "Edit Student" : "Add Student";
+
+    await loadUniversities();
+
+    if (id) {
+      const res  = await fetch(`${API}/students/${id}`);
+      const data = await res.json();
+      document.getElementById("firstName").value    = data.first_name;
+      document.getElementById("lastName").value     = data.last_name;
+      document.getElementById("email").value        = data.email;
+      document.getElementById("universityId").value = data.university?.id;
+    } else {
+      document.getElementById("firstName").value = "";
+      document.getElementById("lastName").value  = "";
+      document.getElementById("email").value     = "";
+    }
+
+    document.getElementById("modalOverlay").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("open");
+    editingId = null;
+  }
+
+  async function saveStudent() {
+    const body = {
+      student: {
+        first_name:     document.getElementById("firstName").value,
+        last_name:      document.getElementById("lastName").value,
+        email:          document.getElementById("email").value,
+        university_id:  document.getElementById("universityId").value
+      }
+    };
+
+    const url    = editingId ? `${API}/students/${editingId}` : `${API}/students`;
+    const method = editingId ? "PATCH" : "POST";
+
+    const res  = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      document.getElementById("errorMsg").textContent = data.errors?.join(", ");
+      return;
+    }
+
+    closeModal();
+    loadStudents();
+  }
+
+  async function deleteStudent(id) {
+    if (!confirm("Delete this student?")) return;
+    await fetch(`${API}/students/${id}`, { method: "DELETE" });
+    document.getElementById("detailPanel").classList.remove("open");
+    loadStudents();
+  }
+
+  loadStudents();
+</script>
+</body>
+</html>
