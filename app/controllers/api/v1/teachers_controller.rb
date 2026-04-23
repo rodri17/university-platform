@@ -3,18 +3,18 @@ module Api
     class TeachersController < Api::BaseController
       def index
         teachers = Teacher.includes(:department, :courses).all
-        render json: teachers.as_json(include: [:department, :courses])
+        render json: teachers.as_json(include: [ :department, :courses ])
       end
 
       def show
         teacher = Teacher.includes(:department, :courses).find(params[:id])
-        render json: teacher.as_json(include: [:department, :courses])
+        render json: teacher.as_json(include: [ :department, :courses ])
       end
 
       def create
         teacher = Teacher.new(teacher_params)
         if teacher.save
-          render json: teacher.as_json(include: [:department]), status: :created
+          render json: teacher.as_json(include: [ :department ]), status: :created
         else
           render json: { errors: teacher.errors.full_messages }, status: :unprocessable_entity
         end
@@ -23,7 +23,7 @@ module Api
       def update
         teacher = Teacher.find(params[:id])
         if teacher.update(teacher_params)
-          render json: teacher.as_json(include: [:department])
+          render json: teacher.as_json(include: [ :department ])
         else
           render json: { errors: teacher.errors.full_messages }, status: :unprocessable_entity
         end

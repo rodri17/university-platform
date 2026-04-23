@@ -9,7 +9,7 @@ module Api
       def show
         course = Course.includes(:teacher, :degree, :term, :students, :assignments, :schedules).find(params[:id])
         render json: course.as_json(
-          include: [:teacher, :degree, :term, :assignments, :schedules]
+          include: [ :teacher, :degree, :term, :assignments, :schedules ]
         ).merge(image: UnsplashService.fetch_image(course.name))
       end
 
@@ -26,7 +26,7 @@ module Api
 
       def courses_with_images(courses)
         courses.map do |course|
-          course.as_json(include: [:teacher, :degree, :term, :schedules])
+          course.as_json(include: [ :teacher, :degree, :term, :schedules ])
                 .merge(image: UnsplashService.fetch_image(course.name))
         end
       end

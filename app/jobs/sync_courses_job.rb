@@ -12,7 +12,7 @@ class SyncCoursesJob < ApplicationJob
     { name: "Linear Algebra",                 code: "MA101", credits: 5 },
     { name: "Calculus I",                     code: "MA201", credits: 5 },
     { name: "Software Engineering",           code: "CS501", credits: 6 },
-    { name: "Computer Networks",              code: "CS601", credits: 5 },
+    { name: "Computer Networks",              code: "CS601", credits: 5 }
   ].freeze
 
   DAYS = %w[Monday Tuesday Wednesday Thursday Friday].freeze
@@ -92,7 +92,7 @@ class SyncCoursesJob < ApplicationJob
   def attach_schedule(course)
     days = DAYS.sample(2)
     days.each do |day|
-      hour = [9, 10, 11, 14, 15, 16].sample
+      hour = [ 9, 10, 11, 14, 15, 16 ].sample
       Schedule.find_or_create_by!(
         course:      course,
         day_of_week: day

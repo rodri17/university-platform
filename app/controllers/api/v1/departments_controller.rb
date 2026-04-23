@@ -3,12 +3,12 @@ module Api
     class DepartmentsController < Api::BaseController
       def index
         departments = Department.includes(:university, :teachers, :degrees).all
-        render json: departments.as_json(include: [:university, :teachers, :degrees])
+        render json: departments.as_json(include: [ :university, :teachers, :degrees ])
       end
 
       def show
         department = Department.find(params[:id])
-        render json: department.as_json(include: [:university, :teachers, :degrees])
+        render json: department.as_json(include: [ :university, :teachers, :degrees ])
       end
     end
   end

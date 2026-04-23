@@ -3,7 +3,7 @@ module Api
     class StudentsController < Api::BaseController
       def index
         students = Student.includes(:university, :courses).all
-        render json: students.as_json(include: [:university, :courses])
+        render json: students.as_json(include: [ :university, :courses ])
       end
 
       def show
@@ -12,7 +12,7 @@ module Api
           include: {
             university: {},
             enrollments: { include: :course },
-            submissions: { include: [:assignment, :grade] }
+            submissions: { include: [ :assignment, :grade ] }
           }
         )
       end
@@ -20,7 +20,7 @@ module Api
       def create
         student = Student.new(student_params)
         if student.save
-          render json: student.as_json(include: [:university]), status: :created
+          render json: student.as_json(include: [ :university ]), status: :created
         else
           render json: { errors: student.errors.full_messages }, status: :unprocessable_entity
         end
@@ -29,7 +29,7 @@ module Api
       def update
         student = Student.find(params[:id])
         if student.update(student_params)
-          render json: student.as_json(include: [:university])
+          render json: student.as_json(include: [ :university ])
         else
           render json: { errors: student.errors.full_messages }, status: :unprocessable_entity
         end
